@@ -16,8 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 addSubmitToyFormEvent();
 
-
-fetchRequest('http://localhost:3000/toys').then(toys => toys.forEach(renderToy));
+fetchJSON('http://localhost:3000/toys').then(toys => toys.forEach(renderToy));
 
 function renderToy(toy) {
   const toyCollection = document.getElementById("toy-collection");
@@ -38,21 +37,19 @@ function renderToy(toy) {
   button.className = 'like-btn';
   button.id = toy.id;
   button.textContent = 'Like';
-
+  button.addEventListener('click', e => {
+    e.preventDefault();
+    patchJSON(`http://localhost:3000/toys/${toy.id}`, {"likes": toy.likes + 1}).then(data => {
+      toy.likes = data.likes;
+      p.textContent = `${data.likes} Likes`;
+    });
+  });
   card.append(h2, img, p, button);
 
   toyCollection.append(card);
 }
 
-function fetchRequest(url) {
-  return fetch(url).then(response => {
-    if(response.ok) {
-      return response.json()
-    } else {
-      throw(`An error occured. Status code: ${response.status}.`);
-    }
-    });
-}
+
 
 function addSubmitToyFormEvent() {
   const toyForm = document.querySelector('.add-toy-form');
@@ -64,17 +61,42 @@ function addSubmitToyFormEvent() {
       image: e.target.image.value,
       likes: 0
     };
-    postJSON('http://localhost:3000/toys', toy);
-    renderToy(toy);
+    postJSON('http://localhost:3000/toys', toy).then(response => renderToy(response));
     e.target.reset();
   });
 }
 
+function fetchJSON(url) {
+  return fetch(url).then(response => {
+    if(response.ok) {
+      return response.json()
+    } else {
+      throw(`An error occured. Status code: ${response.status}.`);
+    }
+    });
+}
 function postJSON(url, data) {
   return fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  })
+    .then(response => {
+      if (response.ok) {
+        return response.json()
+      } else {
+        throw (response.statusText)
+      }
+    })
+}
+function patchJSON(url, data) {
+  return fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json"
     },
     body: JSON.stringify(data)
   })
